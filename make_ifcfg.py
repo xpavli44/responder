@@ -85,13 +85,23 @@ def restart_interface(interface="eth1"):
 
 
 def start_responder_instance_screen(index=0):
+    """
+    Function will start snmpsimd in screen so user can attach and see output of the snmpsimd
+    :param index: index of instance to be started
+    :type index: int
+    :return:start command
+    """
     start_screen_cmd = "screen -S responder_range_{0} -d -m snmpsimd.py --args-from-file=/var/tmp/ips_{0}.txt " \
                        "--v2c-arch --process-user=nobody --process-group=nobody".format(index)
-    system(start_screen_cmd)
-    return True
+    return system(start_screen_cmd)
 
 
 def stop_responder_instance_screen(index=0):
+    """
+    Function will stop snmpsimd in screen
+    :param index: index of instance to be stopped
+    :type index: int
+    :return:stop command
+    """
     stop_screen_cmd = "do screen -X -S ${0}_responder quit".format(index)
-    system(stop_screen_cmd)
-    return True
+    return system(stop_screen_cmd)
