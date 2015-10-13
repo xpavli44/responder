@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+
 import socket
 import struct
 from os import system
+import sys
+import getopt
 
 from IPy import IP
 
@@ -29,13 +33,13 @@ def create_range_file(interface, ip, range_index):
     :type interface: str
     :param ip: first ip in the range ending with zero
     :type ip: str
-    :param range_index: index to determine clonennum for ifcfg file to avoid interface duplicity
+    :param range_index: index to determine clonenum for ifcfg file to avoid interface duplicity
     :type range_index int
     :return True if everything goes through
     """
-    # file_prefix = "/etc/sysconfig/network-scripts"
+    file_prefix = "/etc/sysconfig/network-scripts"
     # TODO: change path to correct one
-    file_prefix = "/tmp"
+    # file_prefix = "/tmp"
     ip_prefix = ip + "/24"
     ip_range = IP(ip_prefix, make_net=True).strNormal(3)
     ip_range_split = ip_range.split("-")
@@ -57,7 +61,7 @@ def create_range_file(interface, ip, range_index):
 
 def create_responder_ip_file(first_ip, index):
     """
-    This function creates file with list of IP addresses used as IPv4 endpoinds for the responder
+    This function creates file with list of IP addresses used as IPv4 end points for the responder
     :param first_ip: first IP which will be added to ip file for responder
     :type first_ip str
     :param index: index of the IP range file for the responder
@@ -105,3 +109,51 @@ def stop_responder_instance_screen(index=0):
     """
     stop_screen_cmd = "do screen -X -S ${0}_responder quit".format(index)
     return system(stop_screen_cmd)
+
+
+def print_usage():
+    print "Usage: " + sys.argv[0] + " -a <action> -s <start IP> -e <end IP>"
+    print "Example:" + sys.argv[0] + " -a configure -s 10.191.0.0 -e 10.191.20.255"
+
+
+def main(argv):
+    start_ip = ''
+    end_ip = ''
+    action = ''
+    try:
+        opts, args = getopt.getopt(argv, "ha:s:e:", ["action=", "start=", "end="])
+    except getopt.GetoptError:
+        print_usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-h", "--help", "/h"):
+            print_usage()
+            sys.exit()
+        elif opt in ("-s", "--start"):
+            start_ip = arg
+            # validate IP
+            try:
+                socket.inet_aton(start_ip)
+            except socket.error:
+                print "{0} is not valid IP address".format(start_ip)
+                sys.exit()
+        elif opt in ("-e", "--end"):
+            end_ip = arg
+            # validate IP
+            try:
+                socket.inet_aton(end_ip)
+            except socket.error:
+                print "{0} is not valid IP address".format(start_ip)
+                sys.exit()
+        elif opt in ("-a", "--action"):
+            action = arg
+    if start_ip and end_ip and ip2long(start_ip) <= ip2long(end_ip):
+        print "Start IP is:", start_ip
+        print "End IP is:", end_ip
+        print "Action is:", action
+    else:
+        print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
+        print_usage()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
