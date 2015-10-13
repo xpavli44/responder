@@ -154,6 +154,7 @@ def main(argv):
     else:
         print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
         print_usage()
+        sys.exit(2)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
