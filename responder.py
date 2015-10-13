@@ -37,9 +37,9 @@ def create_range_file(interface, ip, range_index):
     :type range_index int
     :return True if everything goes through
     """
-    file_prefix = "/etc/sysconfig/network-scripts"
+    # file_prefix = "/etc/sysconfig/network-scripts"
     # TODO: change path to correct one
-    # file_prefix = "/tmp"
+    file_prefix = "/tmp"
     ip_prefix = ip + "/24"
     ip_range = IP(ip_prefix, make_net=True).strNormal(3)
     ip_range_split = ip_range.split("-")
@@ -48,6 +48,7 @@ def create_range_file(interface, ip, range_index):
     clonenum = 255*range_index
 
     filename = file_prefix + "/" + "ifcfg-" + interface + "-range" + str(range_index)
+    print "Creating file: {0}".format(filename)
 
     with open(filename, "w+") as f:
         f.write("IPADDR_START={0}\n".format(ip_start))
@@ -55,6 +56,10 @@ def create_range_file(interface, ip, range_index):
         f.write("PREFIX=24\n")
         f.write("CLONENUM_START={0}\n".format(clonenum))
         f.write("ARPCHECK=no\n")
+
+    with open(filename, 'r') as f:
+        print "Printing content of {0}".format(filename)
+        print f.read()
 
     return True
 
@@ -112,8 +117,29 @@ def stop_responder_instance_screen(index=0):
 
 
 def print_usage():
+    """
+    Function to print how to use this script from command line
+    :return: None
+    """
     print "Usage: " + sys.argv[0] + " -a <action> -s <start IP> -e <end IP>"
     print "Example:" + sys.argv[0] + " -a configure -s 10.191.0.0 -e 10.191.20.255"
+
+
+def get_increments(start_ip, end_ip):
+    """
+    Find how many increments by 255 are in between first and last IP in the range and the rest of the IPs after
+    subtracting all the increments
+    :param start_ip: first IP in the range
+    :type start_ip str
+    :param end_ip: last IP in the range
+    :type end_ip str
+    :return increments, rest
+    """
+    num_ips = (ip2long(end_ip) - ip2long(start_ip))
+    increments, rest = divmod(num_ips, 255)
+    # in case range is lower then 255 return 1
+    increments += 1
+    return increments
 
 
 def main(argv):
@@ -143,10 +169,24 @@ def main(argv):
             try:
                 socket.inet_aton(end_ip)
             except socket.error:
-                print "{0} is not valid IP address".format(start_ip)
+                print "{0} is not valid IP address".format(end_ip)
                 sys.exit(2)
         elif opt in ("-a", "--action"):
             action = arg
+
+    if action.lower() == "configure":
+        increments = get_increments(start_ip=start_ip, end_ip=end_ip)
+        for counter in range(0, increments):
+            ip = ((ip2long(str(start_ip))) + counter * 255)
+            incremented_ip = long2ip(ip)
+            create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
+    else:
+        print "Unknown action {0}".format(action)
+        print "Known actions: configure, start, stop"
+        print_usage()
+        sys.exit(2)
+
+    # check that IPs are ascending
     if start_ip and end_ip and ip2long(start_ip) <= ip2long(end_ip):
         print "Start IP is:", start_ip
         print "End IP is:", end_ip
