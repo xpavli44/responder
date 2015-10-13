@@ -128,7 +128,7 @@ def main(argv):
     for opt, arg in opts:
         if opt in ("-h", "--help", "/h"):
             print_usage()
-            sys.exit()
+            sys.exit(2)
         elif opt in ("-s", "--start"):
             start_ip = arg
             # validate IP
@@ -136,7 +136,7 @@ def main(argv):
                 socket.inet_aton(start_ip)
             except socket.error:
                 print "{0} is not valid IP address".format(start_ip)
-                sys.exit()
+                sys.exit(2)
         elif opt in ("-e", "--end"):
             end_ip = arg
             # validate IP
@@ -144,7 +144,7 @@ def main(argv):
                 socket.inet_aton(end_ip)
             except socket.error:
                 print "{0} is not valid IP address".format(start_ip)
-                sys.exit()
+                sys.exit(2)
         elif opt in ("-a", "--action"):
             action = arg
     if start_ip and end_ip and ip2long(start_ip) <= ip2long(end_ip):
