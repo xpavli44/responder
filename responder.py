@@ -209,14 +209,15 @@ def kill_screeen():
     print "Done"
 
 
-def cleanup():
+def cleanup_files():
+    """
+    remove ifcfg configuration files and responder IP range files
+    :return:
+    """
     dir_ips = "/var/tmp/"
     pattern_ips = "ips_*.txt"
     dir_ifcfg = "/etc/sysconfig/network-scripts/"
     pattern_ifcg = "ifcfg-*-range*"
-
-    kill_snmpsim()
-    kill_screeen()
 
     for f in os.listdir(dir_ips):
         if fnmatch.fnmatch(f, pattern_ips):
@@ -227,8 +228,6 @@ def cleanup():
         if fnmatch.fnmatch(f, pattern_ifcg):
             print "Removing file {0}".format(os.path.join(dir_ifcfg, f))
             os.remove(os.path.join(dir_ifcfg, f))
-
-    restart_interface()
 
 
 def main(argv):
@@ -279,6 +278,7 @@ def main(argv):
     increments = get_increments(start_ip=start_ip, end_ip=end_ip)
 
     if action.lower() == "configure":
+        cleanup_files()
         for counter in range(1, increments):
             incremented_ip = increment_range(start_ip, counter)
             create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
@@ -296,7 +296,10 @@ def main(argv):
             stop_responder_instance_screen(index=counter)
 
     elif action.lower() == "cleanup":
-        cleanup()
+        kill_snmpsim()
+        kill_screeen()
+        cleanup_files()
+        restart_interface()
 
     else:
         print "Unknown action {0}".format(action)
