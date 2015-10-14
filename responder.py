@@ -274,6 +274,7 @@ def main(argv):
             incremented_ip = increment_range(start_ip, counter)
             create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
             create_responder_ip_file(first_ip=incremented_ip, index=counter)
+            create_ifcfg_file()
             restart_interface()
             print ""
 
