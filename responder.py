@@ -38,9 +38,7 @@ def create_range_file(interface, ip, range_index):
     :type range_index int
     :return True if everything goes through
     """
-    # file_prefix = "/etc/sysconfig/network-scripts"
-    # TODO: change path to correct one
-    file_prefix = "/tmp"
+    file_prefix = "/etc/sysconfig/network-scripts"
     ip_prefix = ip + "/24"
     ip_range = IP(ip_prefix, make_net=True).strNormal(3)
     ip_range_split = ip_range.split("-")
@@ -113,7 +111,7 @@ def restart_interface(interface="eth1"):
     :type interface: str
     :return: None
     """
-    restart_cmd = "ifdown {0} && sudo ifup {0}".format(interface)
+    restart_cmd = "ifdown {0} && ifup {0}".format(interface)
     os.system(restart_cmd)
 
 
