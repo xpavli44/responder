@@ -1,28 +1,29 @@
 #!/usr/bin/env python
 
+# Author: Martin Pavlik
+
 import socket
 import struct
-from os import system
+import os
 import sys
 import getopt
+import fnmatch
 
 from IPy import IP
 
 
 def ip2long(ip):
     """
-    Convert an IP string to long
+    Convert an IP string to longint
     """
-    packed_ip = socket.inet_aton(ip)
-    return struct.unpack("!L", packed_ip)[0]
+    return struct.unpack("!I", socket.inet_aton(ip))[0]
 
 
 def long2ip(long_int):
     """
-    Convert an long to IP string
+    Convert a longint to IP string
     """
-    long_int = socket.inet_ntoa(long_int)
-    return struct.unpack("!L", long_int)[0]
+    return socket.inet_ntoa(struct.pack("!I", long_int))
 
 
 def create_range_file(interface, ip, range_index):
@@ -48,7 +49,7 @@ def create_range_file(interface, ip, range_index):
     clonenum = 255*range_index
 
     filename = file_prefix + "/" + "ifcfg-" + interface + "-range" + str(range_index)
-    print "Creating file: {0}".format(filename)
+    print "Creating file: {0} for IP range {1}/24".format(filename, ip_start)
 
     with open(filename, "w+") as f:
         f.write("IPADDR_START={0}\n".format(ip_start))
@@ -57,10 +58,32 @@ def create_range_file(interface, ip, range_index):
         f.write("CLONENUM_START={0}\n".format(clonenum))
         f.write("ARPCHECK=no\n")
 
-    with open(filename, 'r') as f:
-        print "Printing content of {0}".format(filename)
-        print f.read()
+    return True
 
+
+def create_ifcfg_file(interface="eth1"):
+    """
+    function creates ifcfg-XXXX file in order to configure interface to be used for IP ranges assignment
+    :param interface: interface for which the file is created, e.g. eth1
+    :type interface: str
+    :return True if everything goes through
+    """
+    file_prefix = "/etc/sysconfig/network-scripts"
+    filename = file_prefix + "/" + "ifcfg-" + interface
+
+    print "Creating ifcfg file for: {0}".format(interface)
+
+    with open(filename, "w+") as f:
+        f.write("TYPE=\"Ethernet\"")
+        f.write("BOOTPROTO=\"none\"")
+        f.write("DEFROUTE=\"no\"")
+        f.write("IPV6INIT=\"no\"")
+        f.write("NAME=\"{0}\"".format(interface))
+        f.write("DEVICE=\"{0}\"".format(interface))
+        f.write("ONBOOT=\"yes\"")
+        f.write("NO_ALIASROUTING=\"yes\"")
+        f.write("NM_CONTROLLED=\"no\"")
+        f.write("ARPCHECK=\"no\"")
     return True
 
 
@@ -76,6 +99,7 @@ def create_responder_ip_file(first_ip, index):
     file_path = "/var/tmp/"
     file_name = "ips_" + str(index) + ".txt"
     ip_range = IP(first_ip + str("/24"), make_net=True)
+    print "Creating responder config file {0}{1} for IP range {2}".format(file_path, file_name, ip_range)
     with open(file_path+file_name, "w+") as f:
         for ip in ip_range:
             f.write("--agent-udpv4-endpoint={0}\n".format(ip))
@@ -90,7 +114,7 @@ def restart_interface(interface="eth1"):
     :return: None
     """
     restart_cmd = "ifdown {0} && sudo ifup {0}".format(interface)
-    system(restart_cmd)
+    os.system(restart_cmd)
 
 
 def start_responder_instance_screen(index=0):
@@ -102,7 +126,7 @@ def start_responder_instance_screen(index=0):
     """
     start_screen_cmd = "screen -S responder_range_{0} -d -m snmpsimd.py --args-from-file=/var/tmp/ips_{0}.txt " \
                        "--v2c-arch --process-user=nobody --process-group=nobody".format(index)
-    return system(start_screen_cmd)
+    return os.system(start_screen_cmd)
 
 
 def stop_responder_instance_screen(index=0):
@@ -112,8 +136,8 @@ def stop_responder_instance_screen(index=0):
     :type index: int
     :return:stop command
     """
-    stop_screen_cmd = "do screen -X -S ${0}_responder quit".format(index)
-    return system(stop_screen_cmd)
+    stop_screen_cmd = "screen -X -S ${0}_responder quit".format(index)
+    return os.system(stop_screen_cmd)
 
 
 def print_usage():
@@ -123,6 +147,11 @@ def print_usage():
     """
     print "Usage: " + sys.argv[0] + " -a <action> -s <start IP> -e <end IP>"
     print "Example:" + sys.argv[0] + " -a configure -s 10.191.0.0 -e 10.191.20.255"
+    print "Available actions: configure, start, stop, cleanup" \
+          "\n\tconfigure: this will create ifcfg an ip files for responder" \
+          "\n\tstart: will start responder instance in screen" \
+          "\n\tstop: will stop responder instances" \
+          "\n\tcleanup: will kill all responder instances and remove configuration files"
 
 
 def get_increments(start_ip, end_ip):
@@ -142,10 +171,64 @@ def get_increments(start_ip, end_ip):
     return increments
 
 
+def increment_range(start_ip, counter):
+    ip = ip2long(start_ip) + counter * 255
+    incremented_ip = long2ip(ip)
+    return incremented_ip
+
+
+def kill_snmpsim():
+    """
+    Function to kill all snmpsimd.py process
+    :return: kill command
+    """
+    kill_cmd = "killall snmpsimd.py -s 9"
+    print "Killing all snmpsimd instances..."
+    os.system(kill_cmd)
+    print "Done"
+
+
+def kill_screeen():
+    """
+    Function to kill and wipe all screen sessions
+    :return:
+    """
+    kill_cmd = "killall screen -s 9"
+    wipe_cmd = "screen -wipe"
+    print "Killing all screen instances..."
+    os.system(kill_cmd)
+    print "Wiping dead screen instances..."
+    os.system(wipe_cmd)
+    print "Done"
+
+
+def cleanup():
+    dir_ips = "/var/tmp/"
+    pattern_ips = "ips_*.txt"
+    dir_ifcfg = "/etc/sysconfig/network-scripts/"
+    pattern_ifcg = "ifcfg-*-range*"
+
+    kill_snmpsim()
+    kill_screeen()
+
+    for f in os.listdir(dir_ips):
+        if fnmatch.fnmatch(f, pattern_ips):
+            print "Removing file {0}".format(os.path.join(dir_ips, f))
+            os.remove(os.path.join(dir_ips, f))
+
+    for f in os.listdir(dir_ifcfg):
+        if fnmatch.fnmatch(f, pattern_ifcg):
+            print "Removing file {0}".format(os.path.join(dir_ifcfg, f))
+            os.remove(os.path.join(dir_ifcfg, f))
+
+    restart_interface()
+
+
 def main(argv):
     start_ip = ''
     end_ip = ''
     action = ''
+
     try:
         opts, args = getopt.getopt(argv, "ha:s:e:", ["action=", "start=", "end="])
     except getopt.GetoptError:
@@ -174,25 +257,42 @@ def main(argv):
         elif opt in ("-a", "--action"):
             action = arg
 
-    if action.lower() == "configure":
-        increments = get_increments(start_ip=start_ip, end_ip=end_ip)
-        for counter in range(0, increments):
-            ip = ((ip2long(str(start_ip))) + counter * 255)
-            incremented_ip = long2ip(ip)
-            create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
-    else:
-        print "Unknown action {0}".format(action)
-        print "Known actions: configure, start, stop"
-        print_usage()
-        sys.exit(2)
-
     # check that IPs are ascending
     if start_ip and end_ip and ip2long(start_ip) <= ip2long(end_ip):
         print "Start IP is:", start_ip
         print "End IP is:", end_ip
         print "Action is:", action
+        print ""
+
     else:
         print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
+        print_usage()
+        sys.exit(2)
+
+    increments = get_increments(start_ip=start_ip, end_ip=end_ip)
+
+    if action.lower() == "configure":
+        for counter in range(1, increments):
+            incremented_ip = increment_range(start_ip, counter)
+            create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
+            create_responder_ip_file(first_ip=incremented_ip, index=counter)
+            restart_interface()
+            print ""
+
+    elif action.lower() == "start":
+        for counter in range(1, increments):
+            start_responder_instance_screen(index=counter)
+
+    elif action.lower() == "stop":
+        for counter in range(1, increments):
+            stop_responder_instance_screen(index=counter)
+
+    elif action.lower() == "cleanup":
+        cleanup()
+
+    else:
+        print "Unknown action {0}".format(action)
+        print "Known actions: configure, start, stop, cleanup"
         print_usage()
         sys.exit(2)
 
