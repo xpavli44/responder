@@ -72,12 +72,12 @@ def create_ifcfg_file(interface="eth1"):
     print "Creating ifcfg file for: {0}".format(interface)
 
     with open(filename, "w+") as f:
+        f.write("DEVICE=\"{0}\"\n".format(interface))
         f.write("TYPE=\"Ethernet\"\n")
         f.write("BOOTPROTO=\"none\"\n")
         f.write("DEFROUTE=\"no\"\n")
         f.write("IPV6INIT=\"no\"\n")
         f.write("NAME=\"{0}\"\n".format(interface))
-        f.write("DEVICE=\"{0}\"\n".format(interface))
         f.write("ONBOOT=\"yes\"\n")
         f.write("NO_ALIASROUTING=\"yes\"\n")
         f.write("NM_CONTROLLED=\"no\"\n")
@@ -115,7 +115,7 @@ def restart_interface(interface="eth1"):
     os.system(restart_cmd)
 
 
-def start_responder_instance_screen(index=0):
+def start_responder_instance_screen(index=1):
     """
     Function will start snmpsimd in screen so user can attach and see output of the snmpsimd
     :param index: index of instance to be started
@@ -127,7 +127,7 @@ def start_responder_instance_screen(index=0):
     return os.system(start_screen_cmd)
 
 
-def stop_responder_instance_screen(index=0):
+def stop_responder_instance_screen(index=1):
     """
     Function will stop snmpsimd in screen
     :param index: index of instance to be stopped
