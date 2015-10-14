@@ -72,16 +72,16 @@ def create_ifcfg_file(interface="eth1"):
     print "Creating ifcfg file for: {0}".format(interface)
 
     with open(filename, "w+") as f:
-        f.write("TYPE=\"Ethernet\"")
-        f.write("BOOTPROTO=\"none\"")
-        f.write("DEFROUTE=\"no\"")
-        f.write("IPV6INIT=\"no\"")
-        f.write("NAME=\"{0}\"".format(interface))
-        f.write("DEVICE=\"{0}\"".format(interface))
-        f.write("ONBOOT=\"yes\"")
-        f.write("NO_ALIASROUTING=\"yes\"")
-        f.write("NM_CONTROLLED=\"no\"")
-        f.write("ARPCHECK=\"no\"")
+        f.write("TYPE=\"Ethernet\"\n")
+        f.write("BOOTPROTO=\"none\"\n")
+        f.write("DEFROUTE=\"no\"\n")
+        f.write("IPV6INIT=\"no\"\n")
+        f.write("NAME=\"{0}\"\n".format(interface))
+        f.write("DEVICE=\"{0}\"\n".format(interface))
+        f.write("ONBOOT=\"yes\"\n")
+        f.write("NO_ALIASROUTING=\"yes\"\n")
+        f.write("NM_CONTROLLED=\"no\"\n")
+        f.write("ARPCHECK=\"no\"\n")
     return True
 
 
