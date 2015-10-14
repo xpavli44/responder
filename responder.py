@@ -44,7 +44,7 @@ def create_range_file(interface, ip, range_index):
     ip_range_split = ip_range.split("-")
     ip_start = ip_range_split[0]
     ip_end = ip_range_split[1]
-    clonenum = 255*range_index-1
+    clonenum = 255*(range_index-1)
 
     filename = file_prefix + "/" + "ifcfg-" + interface + "-range" + str(range_index)
     print "Creating file: {0} for IP range {1}/24".format(filename, ip_start)
