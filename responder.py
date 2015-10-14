@@ -134,7 +134,7 @@ def stop_responder_instance_screen(index=1):
     :type index: int
     :return:stop command
     """
-    stop_screen_cmd = "screen -X -S ${0}_responder quit".format(index)
+    stop_screen_cmd = "screen -X -S responder_range_{0} quit".format(index)
     return os.system(stop_screen_cmd)
 
 
@@ -170,6 +170,13 @@ def get_increments(start_ip, end_ip):
 
 
 def increment_range(start_ip, counter):
+    """
+    Increment IP address by 255 multiple times
+    :param start_ip: base IP to be incremented
+    :type start_ip: str
+    :param counter: how many times do you want to increment the IP by 255
+    :return:incremented IP
+    """
     ip = ip2long(start_ip) + counter * 255
     incremented_ip = long2ip(ip)
     return incremented_ip
@@ -178,7 +185,7 @@ def increment_range(start_ip, counter):
 def kill_snmpsim():
     """
     Function to kill all snmpsimd.py process
-    :return: kill command
+    :return:
     """
     kill_cmd = "killall snmpsimd.py -s 9"
     print "Killing all snmpsimd instances..."
