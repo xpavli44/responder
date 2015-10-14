@@ -44,7 +44,7 @@ def create_range_file(interface, ip, range_index):
     ip_range_split = ip_range.split("-")
     ip_start = ip_range_split[0]
     ip_end = ip_range_split[1]
-    clonenum = 255*range_index
+    clonenum = 255*range_index-1
 
     filename = file_prefix + "/" + "ifcfg-" + interface + "-range" + str(range_index)
     print "Creating file: {0} for IP range {1}/24".format(filename, ip_start)
@@ -284,8 +284,8 @@ def main(argv):
             create_range_file(ip=incremented_ip, interface="eth1", range_index=counter)
             create_responder_ip_file(first_ip=incremented_ip, index=counter)
             create_ifcfg_file()
-            restart_interface()
             print ""
+        restart_interface()
 
     elif action.lower() == "start":
         for counter in range(1, increments):
