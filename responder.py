@@ -124,6 +124,7 @@ def start_responder_instance_screen(index=1):
     """
     start_screen_cmd = "screen -S responder_range_{0} -d -m snmpsimd.py --args-from-file=/var/tmp/ips_{0}.txt " \
                        "--v2c-arch --process-user=nobody --process-group=nobody".format(index)
+    print "Starting screen for responder_range_{0}\n".format(index)
     return os.system(start_screen_cmd)
 
 
@@ -135,6 +136,7 @@ def stop_responder_instance_screen(index=1):
     :return:stop command
     """
     stop_screen_cmd = "screen -X -S responder_range_{0} quit".format(index)
+    print "Stopping screen for responder_range_{0}\n".format(index)
     return os.system(stop_screen_cmd)
 
 
