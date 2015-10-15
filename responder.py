@@ -27,7 +27,7 @@ import IPy
 
 def interface_check(interface="eth1"):
     """
-    Check if network interface is UP
+    Check if network interface is UP from ifcfg point of view and check if wire is plugged into the interface
     :param interface: interface to check
     :type interface: str
     :return: exit code of the ifup command
