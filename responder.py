@@ -192,7 +192,7 @@ def increment_range(start_ip, counter):
     :return:incremented IP
     """
     ip = IPy.IPint(start_ip).int() + counter * 255
-    incremented_ip = IPy.intToIp(ip=ip, version="4")
+    incremented_ip = IPy.intToIp(ip=ip, version=4)
     return incremented_ip
 
 
