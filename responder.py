@@ -52,7 +52,7 @@ def interface_check(interface="eth1"):
     if is_up != 1:
         print "Interface {} is DOWN".format(interface)
         sys.exit(2)
-    if open('/sys/class/net/eth0/operstate').read().strip() != 'up':
+    if open("/sys/class/net/{0}/operstate".format(interface)).read().strip() != "up":
         print "Interface {0} has unplugged cable".format(interface)
         sys.exit(2)
     return True
