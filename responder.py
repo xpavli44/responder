@@ -261,7 +261,7 @@ def main(argv):
             action = arg
 
     # check that IPs are ascending
-    if start_ip and end_ip and IPy.intToIp(start_ip, 4).int() <= IPy.intToIp(end_ip, 4).int():
+    if start_ip and end_ip and IPy.IPint(start_ip, 4).int() <= IPy.IPint(end_ip, 4).int():
         print "Start IP is:", start_ip
         print "End IP is:", end_ip
         print "Action is:", action
