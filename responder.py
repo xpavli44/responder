@@ -15,27 +15,12 @@ Author: Martin Pavlik
 """
 
 import socket
-import struct
 import os
 import sys
 import getopt
 import fnmatch
 
 import IPy
-
-
-def ip2long(ip):
-    """
-    Convert an IP string to longint
-    """
-    return struct.unpack("!I", socket.inet_aton(ip))[0]
-
-
-def long2ip(long_int):
-    """
-    Convert a longint to IP string
-    """
-    return socket.inet_ntoa(struct.pack("!I", long_int))
 
 
 def create_range_file(interface, ip, range_index):
@@ -191,9 +176,9 @@ def increment_range(start_ip, counter):
     :param counter: how many times do you want to increment the IP by 255
     :return:incremented IP
     """
-    ip = IPy.IPint(start_ip).int() + counter * 255
-    incremented_ip = IPy.intToIp(ip=ip, version=4)
-    return incremented_ip
+    incremented_ip_int = IPy.IPint(start_ip).int() + counter * 255
+    incremented_ip_str = IPy.intToIp(ip=incremented_ip_int, version=4)
+    return incremented_ip_str
 
 
 def kill_snmpsim():
@@ -276,7 +261,7 @@ def main(argv):
             action = arg
 
     # check that IPs are ascending
-    if start_ip and end_ip and ip2long(start_ip) <= ip2long(end_ip):
+    if start_ip and end_ip and IPy.intToIp(start_ip, 4).int() <= IPy.intToIp(end_ip, 4).int():
         print "Start IP is:", start_ip
         print "End IP is:", end_ip
         print "Action is:", action
