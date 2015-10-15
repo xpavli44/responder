@@ -13,14 +13,37 @@ Required: this script uses library IPy (see https://pypi.python.org/pypi/IPy/ ) 
 
 Author: Martin Pavlik
 """
-
-import socket
+from socket import *
 import os
 import sys
 import getopt
 import fnmatch
+import struct
+import fcntl
 
 import IPy
+
+
+def interface_check(interface="eth1"):
+    # set some symbolic constants
+    siocgifflags = 0x8913
+    null256 = '\0'*256
+
+    # create a socket so we have a handle to query
+    s = socket(AF_INET, SOCK_DGRAM)
+
+    # call ioctl() to get the flags for the given interface
+    result = fcntl.ioctl(s.fileno(), siocgifflags, interface + null256)
+
+    # extract the interface's flags from the return value
+    flags, = struct.unpack('H', result[16:18])
+
+    # check "UP" bit and print a message
+    up = flags & 1
+    print ('DOWN', 'UP')[up]
+
+    # return a value suitable for shell's "if"
+    sys.exit(not up)
 
 
 def create_range_file(interface, ip, range_index):
@@ -285,6 +308,8 @@ def main(argv):
         restart_interface()
 
     elif action.lower() == "start":
+        if not interface_check():
+            print "Network interface for SNMP responses is not UP !!!"
         for counter in range(1, increments):
             start_responder_instance_screen(index=counter)
 
