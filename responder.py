@@ -13,7 +13,8 @@ Required: this script uses library IPy (see https://pypi.python.org/pypi/IPy/ ) 
 
 Author: Martin Pavlik
 """
-from socket import *
+from IN import AF_INET
+import socket
 import os
 import sys
 import getopt
@@ -36,7 +37,8 @@ def interface_check(interface="eth1"):
     null256 = '\0'*256
 
     # create a socket so we have a handle to query
-    s = socket(AF_INET, SOCK_DGRAM)
+    from _socket import SOCK_DGRAM
+    s = socket.socket(AF_INET, SOCK_DGRAM)
 
     # call ioctl() to get the flags for the given interface
     result = fcntl.ioctl(s.fileno(), siocgifflags, interface + null256)
