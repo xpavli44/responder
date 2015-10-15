@@ -47,11 +47,13 @@ def interface_check(interface="eth1"):
     flags, = struct.unpack('H', result[16:18])
 
     # check "UP" bit and print a message
-    up = flags & 1
-    print ('DOWN', 'UP')[up]
+    is_up = flags & 1
 
-    # return a value suitable for shell's "if"
-    sys.exit(not up)
+    if is_up != 1:
+        print "Interface {} is DOWN".format(interface)
+        sys.exit(2)
+
+    return True
 
 
 def create_range_file(interface, ip, range_index):
