@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 
-# Author: Martin Pavlik
+"""
+Purpose: This script is meant to run on CentOS 7 template to configure SNMP responder using snmpsim.d
+         This script can assign multiple IPs to an interface, create required files for snmpsim.d and launch multiple
+         snmpsim.d instances in chunks of 255 IPs per snmpsim.d instance. For more details on snmpsim
+         see http://snmpsim.sourceforge.net/
+
+         For help on how to invoke this scipt see: print_usage()
+
+Required: this script uses library IPy (see https://pypi.python.org/pypi/IPy/ ) in order to install it launch as root:
+          yum install -y python-pip && pip install IPy
+
+Author: Martin Pavlik
+"""
 
 import socket
 import struct
@@ -9,7 +21,7 @@ import sys
 import getopt
 import fnmatch
 
-from IPy import IP
+import IPy
 
 
 def ip2long(ip):
@@ -40,7 +52,7 @@ def create_range_file(interface, ip, range_index):
     """
     file_prefix = "/etc/sysconfig/network-scripts"
     ip_prefix = ip + "/24"
-    ip_range = IP(ip_prefix, make_net=True).strNormal(3)
+    ip_range = IPy.IP(ip_prefix, make_net=True).strNormal(3)
     ip_range_split = ip_range.split("-")
     ip_start = ip_range_split[0]
     ip_end = ip_range_split[1]
@@ -96,7 +108,7 @@ def create_responder_ip_file(first_ip, index):
     """
     file_path = "/var/tmp/"
     file_name = "ips_" + str(index) + ".txt"
-    ip_range = IP(first_ip + str("/24"), make_net=True)
+    ip_range = IPy.IP(first_ip + str("/24"), make_net=True)
     print "Creating responder config file {0}{1} for IP range {2}".format(file_path, file_name, ip_range)
     with open(file_path+file_name, "w+") as f:
         for ip in ip_range:
@@ -164,7 +176,7 @@ def get_increments(start_ip, end_ip):
     :type end_ip str
     :return increments, rest
     """
-    num_ips = (ip2long(end_ip) - ip2long(start_ip))
+    num_ips = (IPy.IPint(end_ip).int() - IPy.IPint(start_ip).int())
     increments, rest = divmod(num_ips, 255)
     # in case range is lower then 255 return 1
     increments += 1
@@ -179,8 +191,8 @@ def increment_range(start_ip, counter):
     :param counter: how many times do you want to increment the IP by 255
     :return:incremented IP
     """
-    ip = ip2long(start_ip) + counter * 255
-    incremented_ip = long2ip(ip)
+    ip = IPy.IPint(start_ip).int() + counter * 255
+    incremented_ip = IPy.intToIp(ip=ip, version="4")
     return incremented_ip
 
 
