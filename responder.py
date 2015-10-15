@@ -25,6 +25,12 @@ import IPy
 
 
 def interface_check(interface="eth1"):
+    """
+    Check if network interface is UP
+    :param interface: interface to check
+    :type interface: str
+    :return: exit code of the ifup command
+    """
     # set some symbolic constants
     siocgifflags = 0x8913
     null256 = '\0'*256
