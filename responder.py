@@ -80,7 +80,7 @@ def create_range_file(interface, ip, range_index):
     clonenum = 256*(range_index-1)
 
     filename = FILE_PATH + "/" + "ifcfg-" + interface + "-range" + str(range_index)
-    print "Creating file: {0} for IP range {1}/24".format(filename, ip_start)
+    print "Creating file: {0} for IP range {1}/24\n\n".format(filename, ip_start)
 
     with open(filename, "w+") as f:
         f.write("IPADDR_START={0}\n".format(ip_start))
@@ -101,7 +101,7 @@ def create_ifcfg_file(interface="eth1"):
     """
     filename = FILE_PATH + "/" + "ifcfg-" + interface
 
-    print "Creating ifcfg file for: {0}".format(interface)
+    print "Creating ifcfg file for: {0}\n\n".format(interface)
 
     with open(filename, "w+") as f:
         f.write("DEVICE=\"{0}\"\n".format(interface))
@@ -133,8 +133,8 @@ def create_route_file(ip, interface="eth1", netmask="255.255.0.0"):
 
     print "Creating route file {0} for interface: {1}".format(filename, interface)
 
-    # convert ip to network address
-    address = IPy.IP(ip).make_net(netmask)
+    # convert ip to network address and remove /XX
+    address = IPy.IP(ip).make_net(netmask).strNormal(0)
 
     with open(filename, "w+") as f:
         f.write("ADDRESS0=\"{0}\"\n".format(address))
@@ -249,7 +249,7 @@ def kill_snmpsim():
     kill_cmd = "killall snmpsimd.py -s 9"
     print "Killing all snmpsimd instances..."
     os.system(kill_cmd)
-    print "Done"
+    print "Done\n"
 
 
 def kill_screen():
@@ -263,7 +263,7 @@ def kill_screen():
     os.system(kill_cmd)
     print "Wiping dead screen instances..."
     os.system(wipe_cmd)
-    print "Done"
+    print "Done\n"
 
 
 def cleanup_files():
@@ -278,20 +278,20 @@ def cleanup_files():
 
     for f in os.listdir(dir_ips):
         if fnmatch.fnmatch(f, pattern_ips):
-            print "Removing file {0}".format(os.path.join(dir_ips, f))
+            print "Removing file {0}\n".format(os.path.join(dir_ips, f))
             os.remove(os.path.join(dir_ips, f))
 
     for f in os.listdir(FILE_PATH):
         if fnmatch.fnmatch(f, pattern_ifcfg) or fnmatch.fnmatch(f, pattern_route):
-            print "Removing file {0}".format(os.path.join(FILE_PATH, f))
+            print "Removing file {0}\n".format(os.path.join(FILE_PATH, f))
             os.remove(os.path.join(FILE_PATH, f))
 
 
 def check_ip_ascending(start_ip, end_ip):
     # check that IPs are ascending
     if start_ip and end_ip and IPy.IPint(start_ip, 4).int() <= IPy.IPint(end_ip, 4).int():
-        print "Start IP is:", start_ip
-        print "End IP is:", end_ip
+        print "Start IP is: {0}\n".format(start_ip)
+        print "End IP is: {0}\n\n".format(end_ip)
 
     else:
         print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
