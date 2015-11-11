@@ -6,7 +6,7 @@ Purpose: This script is meant to run on CentOS 7 template to configure SNMP resp
          snmpsim.d instances in chunks of 255 IPs per snmpsim.d instance. For more details on snmpsim
          see http://snmpsim.sourceforge.net/
 
-         For help on how to invoke this scipt see: print_usage()
+         For help on how to invoke this script see: print_usage()
 
 Required: this script uses library IPy (see https://pypi.python.org/pypi/IPy/ ) in order to install it launch as root:
           yum install -y python-pip && pip install IPy
@@ -23,6 +23,8 @@ import struct
 import fcntl
 
 import IPy
+
+FILE_PATH = "/etc/sysconfig/network-scripts"
 
 
 def interface_check(interface="eth1"):
@@ -70,7 +72,6 @@ def create_range_file(interface, ip, range_index):
     :type range_index int
     :return True if everything goes through
     """
-    file_prefix = "/etc/sysconfig/network-scripts"
     ip_prefix = ip + "/24"
     ip_range = IPy.IP(ip_prefix, make_net=True).strNormal(3)
     ip_range_split = ip_range.split("-")
@@ -78,7 +79,7 @@ def create_range_file(interface, ip, range_index):
     ip_end = ip_range_split[1]
     clonenum = 256*(range_index-1)
 
-    filename = file_prefix + "/" + "ifcfg-" + interface + "-range" + str(range_index)
+    filename = FILE_PATH + "/" + "ifcfg-" + interface + "-range" + str(range_index)
     print "Creating file: {0} for IP range {1}/24".format(filename, ip_start)
 
     with open(filename, "w+") as f:
@@ -98,8 +99,7 @@ def create_ifcfg_file(interface="eth1"):
     :type interface: str
     :return True if everything goes through
     """
-    file_prefix = "/etc/sysconfig/network-scripts"
-    filename = file_prefix + "/" + "ifcfg-" + interface
+    filename = FILE_PATH + "/" + "ifcfg-" + interface
 
     print "Creating ifcfg file for: {0}".format(interface)
 
@@ -114,6 +114,31 @@ def create_ifcfg_file(interface="eth1"):
         f.write("NO_ALIASROUTING=\"yes\"\n")
         f.write("NM_CONTROLLED=\"no\"\n")
         f.write("ARPCHECK=\"no\"\n")
+    return True
+
+
+def create_route_file(ip, interface="eth1", netmask="255.255.0.0"):
+    """
+    function creates route-XXXX file in order to configure static route on network interface
+    :param ip: IP from which will the network address derived based on netmask
+    :type ip: str
+    :param interface: interface for which the route file is created, e.g. eth1
+    :type interface: str
+    :param netmask: netmask for the route to be added
+    :type netmask: str
+    :return True if everything goes through
+    """
+
+    filename = FILE_PATH + "/" + "route-" + interface
+
+    print "Creating route file {0} for interface: {1}".format(filename, interface)
+
+    # convert ip to network address
+    address = IPy.IP(ip).make_net(netmask)
+
+    with open(filename, "w+") as f:
+        f.write("ADDRESS0=\"{0}\"\n".format(address))
+        f.write("NETMASK0=\"{0}\"\n".format(netmask))
     return True
 
 
@@ -200,7 +225,7 @@ def get_increments(start_ip, end_ip):
     increments, rest = divmod(num_ips, 255)
     # in case range is lower then 255 return 1
     increments += 1
-    return increments
+    return increments, rest
 
 
 def increment_range(start_ip, counter):
@@ -227,7 +252,7 @@ def kill_snmpsim():
     print "Done"
 
 
-def kill_screeen():
+def kill_screen():
     """
     Function to kill and wipe all screen sessions
     :return:
@@ -243,23 +268,35 @@ def kill_screeen():
 
 def cleanup_files():
     """
-    remove ifcfg configuration files and responder IP range files
+    remove ifcfg, route configuration files and responder IP range files
     :return:
     """
     dir_ips = "/var/tmp/"
     pattern_ips = "ips_*.txt"
-    dir_ifcfg = "/etc/sysconfig/network-scripts/"
-    pattern_ifcg = "ifcfg-*-range*"
+    pattern_ifcfg = "ifcfg-*-range*"
+    pattern_route = "route-*"
 
     for f in os.listdir(dir_ips):
         if fnmatch.fnmatch(f, pattern_ips):
             print "Removing file {0}".format(os.path.join(dir_ips, f))
             os.remove(os.path.join(dir_ips, f))
 
-    for f in os.listdir(dir_ifcfg):
-        if fnmatch.fnmatch(f, pattern_ifcg):
-            print "Removing file {0}".format(os.path.join(dir_ifcfg, f))
-            os.remove(os.path.join(dir_ifcfg, f))
+    for f in os.listdir(FILE_PATH):
+        if fnmatch.fnmatch(f, pattern_ifcfg) or fnmatch.fnmatch(f, pattern_route):
+            print "Removing file {0}".format(os.path.join(FILE_PATH, f))
+            os.remove(os.path.join(FILE_PATH, f))
+
+
+def check_ip_ascending(start_ip, end_ip):
+    # check that IPs are ascending
+    if start_ip and end_ip and IPy.IPint(start_ip, 4).int() <= IPy.IPint(end_ip, 4).int():
+        print "Start IP is:", start_ip
+        print "End IP is:", end_ip
+
+    else:
+        print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
+        print_usage()
+        sys.exit(2)
 
 
 def main(argv):
@@ -295,21 +332,9 @@ def main(argv):
         elif opt in ("-a", "--action"):
             action = arg
 
-    # check that IPs are ascending
-    if start_ip and end_ip and IPy.IPint(start_ip, 4).int() <= IPy.IPint(end_ip, 4).int():
-        print "Start IP is:", start_ip
-        print "End IP is:", end_ip
-        print "Action is:", action
-        print ""
-
-    else:
-        print "Start IP has to be lower or equal to end IP, both IPs have to be filled"
-        print_usage()
-        sys.exit(2)
-
-    increments = get_increments(start_ip=start_ip, end_ip=end_ip)
-
     if action.lower() == "configure":
+        check_ip_ascending(start_ip=start_ip, end_ip=end_ip)
+        increments, rest = get_increments(start_ip=start_ip, end_ip=end_ip)
         cleanup_files()
         for counter in range(1, increments):
             incremented_ip = increment_range(start_ip, counter)
@@ -317,21 +342,25 @@ def main(argv):
             create_responder_ip_file(first_ip=incremented_ip, index=counter)
             create_ifcfg_file()
             print ""
+        create_route_file(ip=start_ip, netmask="255.255.0.0", interface="eth1")
         restart_interface()
 
     elif action.lower() == "start":
+        check_ip_ascending(start_ip=start_ip, end_ip=end_ip)
+        increments, rest = get_increments(start_ip=start_ip, end_ip=end_ip)
         if not interface_check():
             print "Network interface for SNMP responses is not UP !!!"
         for counter in range(1, increments):
             start_responder_instance_screen(index=counter)
 
     elif action.lower() == "stop":
+        increments, rest = get_increments(start_ip=start_ip, end_ip=end_ip)
         for counter in range(1, increments):
             stop_responder_instance_screen(index=counter)
 
     elif action.lower() == "cleanup":
         kill_snmpsim()
-        kill_screeen()
+        kill_screen()
         cleanup_files()
         restart_interface()
 
